@@ -48,13 +48,21 @@ function isComment(line: string): boolean {
   return line.startsWith('#') || line.startsWith('//')
 }
 
+/** 2280000 -> 2,280,000. Leaves the decimals and any exponent form alone. */
+function group(digits: string): string {
+  if (/e/i.test(digits)) return digits
+  const [whole, fraction] = digits.split('.')
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return fraction === undefined ? grouped : `${grouped}.${fraction}`
+}
+
 function format(value: unknown): string | null {
   if (value === undefined || value === null || typeof value === 'function') return null
   if (typeof value === 'number') {
     if (!Number.isFinite(value)) return String(value)
-    return math.format(value, { precision: 12, lowerExp: -9, upperExp: 15 })
+    return group(math.format(value, { precision: 10, lowerExp: -9, upperExp: 15 }))
   }
-  return math.format(value, { precision: 12 })
+  return math.format(value, { precision: 10 })
 }
 
 /** Evaluate a block line by line. Variables assigned on one line are visible below it. */

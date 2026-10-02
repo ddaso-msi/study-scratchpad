@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import {
   HTMLContainer,
   Rectangle2d,
@@ -6,11 +6,14 @@ import {
   stopEventPropagation,
   useEditor,
   useIsEditing,
+  type Editor,
   type TLBaseShape,
+  type TLResizeInfo,
 } from 'tldraw'
 import { evaluateLines } from './evaluate'
 
-export type CalcShape = TLBaseShape<'calc', { text: string }>
+/** `w` is only set once the block has been dragged to a width; unset or 0 means fit the content. */
+export type CalcShape = TLBaseShape<'calc', { text: string; w?: number }>
 
 // The block sizes itself to its content, so these have to match calc-block in index.css.
 const FONT_SIZE = 18
@@ -20,27 +23,61 @@ const PAD_X = 14
 const PAD_Y = 10
 const GAP = 28
 const MIN_EXPR_CHARS = 12
+const MAX_AUTO_EXPR_CHARS = 40 // longer lines wrap rather than stretching the block
 
-function layout(text: string) {
+type Layout = ReturnType<typeof measure>
+const layouts = new WeakMap<CalcShape['props'], Layout>()
+
+/** Props objects are immutable, so each version of a block is only measured once. */
+function layout(editor: Editor, props: CalcShape['props']): Layout {
+  let result = layouts.get(props)
+  if (!result) layouts.set(props, (result = measure(editor, props)))
+  return result
+}
+
+function measure(editor: Editor, { text, w }: CalcShape['props']) {
   const lines = text.split('\n')
   const rows = evaluateLines(text)
-  const exprChars = Math.max(MIN_EXPR_CHARS, ...lines.map((l) => l.length + 1))
   const resultChars = Math.max(0, ...rows.map((r) => (r.result ? r.result.length + 2 : r.error ? 1 : 0)))
-  const exprWidth = Math.ceil(exprChars * CHAR_WIDTH)
   const resultWidth = Math.ceil(resultChars * CHAR_WIDTH)
+  const chrome = PAD_X * 2 + (resultWidth ? GAP + resultWidth : 0)
+
+  const longest = Math.max(...lines.map((l) => l.length + 1))
+  const exprChars = !w
+    ? Math.min(MAX_AUTO_EXPR_CHARS, Math.max(MIN_EXPR_CHARS, longest))
+    : Math.max(MIN_EXPR_CHARS, Math.floor((w - chrome) / CHAR_WIDTH))
+  const exprWidth = Math.ceil(exprChars * CHAR_WIDTH)
+
+  // Long lines wrap at word boundaries. Ask the browser how tall each one ends up, using the
+  // same wrapping rules as .calc-expr, so results stay level with the line they belong to.
+  const heights = lines.map((line) => {
+    if (line.length < exprChars) return LINE_HEIGHT
+    const { h } = editor.textMeasure.measureText(line, {
+      fontFamily: 'var(--tl-font-mono)',
+      fontStyle: 'normal',
+      fontWeight: 'normal',
+      fontSize: FONT_SIZE,
+      lineHeight: LINE_HEIGHT / FONT_SIZE,
+      maxWidth: exprWidth,
+      padding: '0px',
+    })
+    return Math.max(1, Math.round(h / LINE_HEIGHT)) * LINE_HEIGHT
+  })
+
   return {
     lines,
     rows,
+    heights,
     exprWidth,
-    w: PAD_X * 2 + exprWidth + (resultWidth ? GAP + resultWidth : 0),
-    h: PAD_Y * 2 + lines.length * LINE_HEIGHT,
+    w: chrome + exprWidth,
+    h: PAD_Y * 2 + heights.reduce((a, b) => a + b, 0),
   }
 }
 
 function CalcBlock({ shape }: { shape: CalcShape }) {
   const editor = useEditor()
   const isEditing = useIsEditing(shape.id)
-  const { lines, rows, exprWidth, w, h } = useMemo(() => layout(shape.props.text), [shape.props.text])
+  const { lines, rows, heights, exprWidth, w, h } = layout(editor, shape.props)
   const input = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -61,7 +98,6 @@ function CalcBlock({ shape }: { shape: CalcShape }) {
               spellCheck={false}
               autoCapitalize="off"
               autoCorrect="off"
-              wrap="off"
               placeholder="125 * 37"
               onChange={(e) =>
                 editor.updateShape<CalcShape>({ id: shape.id, type: 'calc', props: { text: e.target.value } })
@@ -82,7 +118,7 @@ function CalcBlock({ shape }: { shape: CalcShape }) {
         </div>
         <div className="calc-results">
           {rows.map((row, i) => (
-            <div key={i} className={row.error ? 'calc-error' : undefined}>
+            <div key={i} className={row.error ? 'calc-error' : undefined} style={{ height: heights[i] }}>
               {row.result !== null ? `= ${row.result}` : row.error ? '?' : ' '}
             </div>
           ))}
@@ -103,8 +139,17 @@ export class CalcShapeUtil extends ShapeUtil<CalcShape> {
     return true
   }
 
-  override canResize() {
-    return false
+  // Only the width is draggable; the height follows from how the lines wrap.
+  override onResize(_shape: CalcShape, info: TLResizeInfo<CalcShape>) {
+    const start = layout(this.editor, info.initialShape.props).w
+    const w = Math.max(160, start * Math.abs(info.scaleX))
+    const left = info.handle.includes('left')
+    return { x: left ? info.initialShape.x + start - w : info.initialShape.x, y: info.initialShape.y, props: { w } }
+  }
+
+  /** Double-clicking a side handle goes back to fitting the content. */
+  override onDoubleClickEdge(shape: CalcShape) {
+    return { id: shape.id, type: 'calc' as const, props: { w: 0 } }
   }
 
   override hideRotateHandle() {
@@ -112,7 +157,7 @@ export class CalcShapeUtil extends ShapeUtil<CalcShape> {
   }
 
   override getGeometry(shape: CalcShape) {
-    const { w, h } = layout(shape.props.text)
+    const { w, h } = layout(this.editor, shape.props)
     return new Rectangle2d({ width: w, height: h, isFilled: true })
   }
 
@@ -125,7 +170,7 @@ export class CalcShapeUtil extends ShapeUtil<CalcShape> {
   }
 
   override indicator(shape: CalcShape) {
-    const { w, h } = layout(shape.props.text)
+    const { w, h } = layout(this.editor, shape.props)
     return <rect width={w} height={h} />
   }
 }

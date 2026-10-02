@@ -25,7 +25,8 @@ npm run dev
 
 `V` select · `T` text · `D` pen · `E` eraser · `R` rectangle · `O` circle · `L` line ·
 `A` arrow · `C` calculator · `⌘U` image · space-drag or middle-drag to pan · scroll/pinch to zoom.
-In text: `# ` heading, `- ` bullet list, `⌘B` / `⌘I`.
+In text: `# ` heading, `- ` bullet list, `⌘B` / `⌘I`, and `Tab` to turn a calculation into a
+calculator block. Drag a calculator block's side to set its width; double-click the side to reset.
 
 ## Licence note
 

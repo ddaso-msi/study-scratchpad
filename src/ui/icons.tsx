@@ -73,6 +73,12 @@ export const icons = {
       <path d="M3.5 14.5l4-4 3 3 2-2 4 4" />
     </Icon>
   ),
+  style: (
+    <Icon>
+      <circle cx="10" cy="10" r="6.5" />
+      <circle cx="10" cy="10" r="2.5" fill="currentColor" />
+    </Icon>
+  ),
   undo: (
     <Icon>
       <path d="M7 4L3.5 7.5 7 11M4 7.5h7.5a4.5 4.5 0 010 9H9" />

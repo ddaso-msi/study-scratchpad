@@ -152,6 +152,14 @@ body,
   color: var(--sp-ink);
   white-space: pre;
 }
+/* Long lines wrap between words. These rules mirror tldraw's text measurer, which is what
+   CalcShapeUtil uses to work out how tall each wrapped line is. */
+.calc-expr,
+.calc-expr textarea {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
 .calc-expr {
   flex: none;
 }
@@ -168,7 +176,6 @@ body,
   font: inherit;
   line-height: inherit;
   color: inherit;
-  white-space: pre;
 }
 .calc-expr textarea::placeholder {
   color: #c4c0b3;
@@ -196,6 +203,12 @@ body,
   cursor: pointer;
   z-index: 300;
 }
+.sp-smart-math kbd {
+  margin-left: 8px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--sp-muted);
+}
 .sp-smart-math:hover {
   border-style: solid;
   border-color: var(--sp-answer);
@@ -216,7 +229,7 @@ body,
   pointer-events: none;
   user-select: none;
 }
-.sp-hint span {
+.sp-hint small {
   font-size: 12px;
 }
 .sp-hint kbd {
@@ -224,4 +237,59 @@ body,
   border: 1px solid var(--sp-rule);
   border-radius: 3px;
   font: inherit;
+}
+
+/* Touch and stylus */
+.sp-coarse-pointer {
+  display: none;
+}
+@media (pointer: coarse) {
+  .sp-fine-pointer,
+  .sp-smart-math kbd {
+    display: none;
+  }
+  .sp-coarse-pointer {
+    display: revert;
+  }
+  /* Finger-sized targets */
+  .sp-button {
+    width: 40px;
+    height: 40px;
+  }
+  .sp-menu button {
+    padding: 12px;
+    font-size: 15px;
+  }
+  .sp-smart-math {
+    padding: 8px 12px;
+    font-size: 15px;
+  }
+  .sp-styles {
+    top: 60px;
+  }
+}
+
+/* Keep clear of notches and rounded corners */
+.sp-toolbar {
+  margin-top: max(8px, env(safe-area-inset-top));
+}
+
+@media (max-width: 640px) {
+  /* Two tidy rows instead of a ragged wrap: tools on top, actions underneath. */
+  .sp-toolbar .sp-divider:first-of-type {
+    flex-basis: 100%;
+    height: 0;
+    margin: 0;
+  }
+  .sp-styles {
+    top: auto;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    right: 0;
+    max-height: 50%;
+  }
+  .sp-menu {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }

@@ -1,4 +1,4 @@
-import { Tldraw, type TLComponents, type TLUiOverrides } from 'tldraw'
+import { defaultAddFontsFromNode, Tldraw, type TLComponents, type TLTextOptions, type TLUiOverrides } from 'tldraw'
 import { CalcShapeUtil } from './calc/CalcShapeUtil'
 import { CalcTool } from './calc/CalcTool'
 import { guardUnsavedChanges } from './lib/unloadGuard'
@@ -29,6 +29,15 @@ const components: TLComponents = {
   DebugMenu: null,
 }
 
+// Headings render bold, but tldraw only preloads the bold face for explicit bold marks. Without
+// this, a heading is measured before its font arrives and wraps once it does.
+const textOptions: TLTextOptions = {
+  addFontsFromNode(node, state, addFont) {
+    if (node.type.name === 'heading') state = { ...state, weight: 'bold' }
+    return defaultAddFontsFromNode(node, state, addFont)
+  },
+}
+
 const overrides: TLUiOverrides = {
   tools(editor, tools) {
     tools.calc = {
@@ -51,6 +60,7 @@ export default function App() {
         tools={tools}
         components={components}
         overrides={overrides}
+        textOptions={textOptions}
         onMount={guardUnsavedChanges}
         autoFocus
       />
