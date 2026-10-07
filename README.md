@@ -32,8 +32,11 @@ npm run dev
 In text: `# ` heading, `- ` bullet list, `⌘B` / `⌘I`, and `Tab` to turn a calculation into a
 calculator block. Drag a calculator block's side to set its width; double-click the side to reset.
 
-## Licence note
+## Licence
 
-tldraw is pinned to 3.x on purpose. From 4.0 the SDK needs a licence key to run in
-production; 3.x may be deployed as long as the "Made with tldraw" watermark stays.
-Check tldraw's current terms before shipping commercially.
+This project's own code is MIT licensed; see [LICENSE](LICENSE).
+
+That does not cover tldraw, which has its own licence. tldraw is pinned to 3.x on purpose:
+from 4.0 the SDK needs a licence key to run in production, while 3.x may be deployed as long
+as the "Made with tldraw" watermark stays. Check tldraw's current terms before shipping
+commercially.
