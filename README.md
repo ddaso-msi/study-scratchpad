@@ -4,6 +4,10 @@ A blank sheet of paper that can calculate. Text, handwriting, shapes, images and
 live calculator blocks on one infinite canvas. No account, no setup; everything
 saves in the browser.
 
+**Try it: [study-scratchpad.pages.dev](https://study-scratchpad.pages.dev)**
+
+![A projectile-motion problem worked on the scratchpad: notes, a calculator block and a sketch](docs/screenshot.png)
+
 ```bash
 npm install
 npm run dev
